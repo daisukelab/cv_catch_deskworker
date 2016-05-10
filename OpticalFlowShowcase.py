@@ -26,8 +26,6 @@ class DenseOpticalFlow(IOpticalFlow):
     '''Abstract class for DenseOpticalFlow expressions'''
     def set1stFrame(self, frame):
         self.prev = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        self.hsv = np.zeros_like(frame)
-        self.hsv[..., 1] = 255
 
     def apply(self, frame):
         next = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -35,16 +33,21 @@ class DenseOpticalFlow(IOpticalFlow):
         flow = cv2.calcOpticalFlowFarneback(self.prev, next, None,
                                             0.5, 3, 15, 3, 5, 1.2, 0)
 
-        result = self.makeResult(next, flow)
+        result = self.makeResult(frame, next, flow)
         self.prev = next
         return result
 
-    def makeResult(self, grayFrame, flow):
+    def makeResult(self, disp, grayFrame, flow):
         '''Replace this for each expression'''
         return frame.copy()
 
 class DenseOpticalFlowByHSV(DenseOpticalFlow):
-    def makeResult(self, grayFrame, flow):
+    def set1stFrame(self, frame):
+        super.set1stFrame(frame)
+        self.hsv = np.zeros_like(frame)
+        self.hsv[..., 1] = 255
+
+    def makeResult(self, disp, grayFrame, flow):
         mag, ang = cv2.cartToPolar(flow[...,0], flow[...,1])
         self.hsv[...,0] = ang*180/np.pi/2
         self. hsv[...,2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
@@ -54,25 +57,24 @@ class DenseOpticalFlowByLines(DenseOpticalFlow):
     def __init__(self):
         self.step = 16 # configure this if you need other steps...
 
-    def makeResult(self, grayFrame, flow):
+    def makeResult(self, disp, grayFrame, flow):
         h, w = grayFrame.shape[:2]
         y, x = np.mgrid[self.step/2:h:self.step, self.step/2:w:self.step].reshape(2,-1)
         fx, fy = flow[y,x].T
         lines = np.vstack([x, y, x+fx, y+fy]).T.reshape(-1, 2, 2)
         lines = np.int32(lines + 0.5)
-        vis = cv2.cvtColor(grayFrame, cv2.COLOR_GRAY2BGR)
-        cv2.polylines(vis, lines, 0, (0, 255, 0))
+        cv2.polylines(disp, lines, 0, (0, 255, 0))
         for (x1, y1), (x2, y2) in lines:
-            cv2.circle(vis, (x1, y1), 1, (0, 255, 0), -1)
-        return vis
+            cv2.circle(disp, (x1, y1), 1, (0, 255, 0), -1)
+        return disp
 
 class DenseOpticalFlowByWarp(DenseOpticalFlow):
-    def makeResult(self, grayFrame, flow):
+    def makeResult(self, disp, grayFrame, flow):
         h, w = flow.shape[:2]
         flow = -flow
         flow[:,:,0] += np.arange(w)
         flow[:,:,1] += np.arange(h)[:,np.newaxis]
-        return cv2.remap(grayFrame, flow, None, cv2.INTER_LINEAR)
+        return cv2.remap(disp, flow, None, cv2.INTER_LINEAR)
 
 class LucasKandeOpticalFlow(IOpticalFlow):
     def __init__(self):

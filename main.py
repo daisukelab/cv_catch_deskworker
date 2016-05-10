@@ -6,6 +6,7 @@
 
 import cv2
 from DetectCenterOfMoveByOF import *
+from DetectFace import *
 
 usage_text = '''
 Hit followings to switch to:
@@ -23,11 +24,6 @@ Hit ESC to exit.
 
 def main():
     ## private routines
-    def createDetector(prevFrame):
-        of = DemoDetectCenterByOF()
-        of.set1stFrame(prevFrame)
-        return of
-    
     def capture(vc):
         rval, frame = vc.read()
         if rval and flipImage:
@@ -44,8 +40,11 @@ def main():
             
     ### try to get the first frame
     rval, frame = capture(vc)
-    if rval:
-        of = createDetector(frame)
+    if not rval:
+        exit -1
+    of = DemoDetectCenterByOF()
+    of.set1stFrame(frame)
+    fd = FaceDetector()
 
     ### main work
     while rval:
@@ -53,6 +52,7 @@ def main():
 
         ### do it
         img = of.apply(frame)
+        fd.detectAndDraw(img, frame)
         cv2.imshow("preview", img)
 
         ### key operation

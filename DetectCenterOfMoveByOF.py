@@ -24,6 +24,7 @@ class DemoDetectCenterByOF(DenseOpticalFlow):
         self.threshold = 1500  # configure: line sum of magnitude for move detection
         self.rowRange = Range()
         self.colRange = Range()
+
     def detectMovingArea(self, flow):
         # get flow magnitude for each points
         mag, _ = cv2.cartToPolar(flow[...,0], flow[...,1])
@@ -44,26 +45,25 @@ class DemoDetectCenterByOF(DenseOpticalFlow):
             colRange = rowRange = Range()
         print("center=(%d, %d),\tcr=[%d, %d],\trr=[%d, %d],\tstd=(% .5d, % .5d)" % (centroid[0], centroid[1], colRange.pmin, colRange.pmax, rowRange.pmin, rowRange.pmax, std[0], std[1]), end="\n")
         return (centroid, colRange, rowRange, std)
-        
-    def makeResult(self, grayFrame, flow):
+
+    def makeResult(self, disp, grayFrame, flow):
         # draw flow
         h, w = grayFrame.shape[:2]
         y, x = np.mgrid[self.step/2:h:self.step, self.step/2:w:self.step].reshape(2,-1)
         fx, fy = flow[y,x].T
         lines = np.vstack([x, y, x+fx, y+fy]).T.reshape(-1, 2, 2)
         lines = np.int32(lines + 0.5)
-        vis = cv2.cvtColor(grayFrame, cv2.COLOR_GRAY2BGR)
-        cv2.polylines(vis, lines, 0, (0, 255, 0))
+        cv2.polylines(disp, lines, 0, (0, 255, 0))
         for (x1, y1), (x2, y2) in lines:
-            cv2.circle(vis, (x1, y1), 1, (0, 255, 0), -1)
+            cv2.circle(disp, (x1, y1), 1, (0, 255, 0), -1)
 
         # draw detected centroid and moving area
         centroid, cr, rr, std = self.detectMovingArea(flow)
-        cv2.circle(vis, (centroid[0], centroid[1]), 10, (255, 255, 0), -1)
+        cv2.circle(disp, (centroid[0], centroid[1]), 10, (255, 255, 0), -1)
         if cr.isValid():
-            cv2.line(vis, (cr.pmin, h - 10), (cr.pmax, h - 10), (255, 100, 0), 10)
+            cv2.line(disp, (cr.pmin, h - 10), (cr.pmax, h - 10), (255, 100, 0), 10)
         if rr.isValid():
-            cv2.line(vis, (w - 10, rr.pmin), (w - 10, rr.pmax), (255, 100, 0), 10)
-        return vis
+            cv2.line(disp, (w - 10, rr.pmin), (w - 10, rr.pmax), (255, 100, 0), 10)
+        return disp
 
    
