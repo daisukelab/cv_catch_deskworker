@@ -6,7 +6,7 @@
 
 import cv2
 from DetectCenterOfMoveByOF import *
-from DetectFace import *
+from DetectFaceDlib import *
 
 usage_text = '''
 Hit followings to switch to:
@@ -33,6 +33,9 @@ def main():
     ## main starts here
     flipImage = True
     vc = cv2.VideoCapture(0)
+    vc.set(3,640) # CV_CAP_PROP_FRAME_WIDTH
+    vc.set(4,360) # CV_CAP_PROP_FRAME_HEIGHT
+    #vc.set(4,640) # CV_CAP_PROP_FRAME_HEIGHT
     if not vc.isOpened():
         exit -1
             
@@ -51,8 +54,9 @@ def main():
         rval, frame = capture(vc)
 
         ### do it
+        img2 = frame.copy()
         img = of.apply(frame)
-        fd.detectAndDraw(img, frame)
+        fd.detectAndDraw(img, img2)
         cv2.imshow("preview", img)
 
         ### key operation
